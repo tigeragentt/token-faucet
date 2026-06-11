@@ -4,38 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sepolia ETH Faucet</title>
-    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main class="card">
-      <header>
-        <h1>Sepolia ETH Faucet</h1>
-        <p class="muted">Drips <span id="dripAmount">0.1</span> ETH per request on Ethereum Sepolia.</p>
-      </header>
-
-      <section class="row">
-        <button id="connectBtn" class="primary">Connect wallet</button>
-        <span id="walletInfo" class="muted small"></span>
-      </section>
-
-      <section>
-        <label for="recipient">Recipient address</label>
-        <input id="recipient" type="text" placeholder="0x…" autocomplete="off" spellcheck="false" />
-        <p class="muted small">Tip: leave blank to send to your connected wallet.</p>
-      </section>
-
-      <section class="row">
-        <button id="dripBtn" class="primary" disabled>Request 0.1 ETH</button>
-      </section>
-
-      <section id="status" class="status"></section>
-
-      <footer class="muted small">
-        Faucet contract:
-        <code id="faucetAddr"></code>
-        <span id="faucetBalance"></span>
-      </footer>
-    </main>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

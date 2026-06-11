@@ -1,36 +1,51 @@
 # Token Faucet
 
-A simple Sepolia ETH faucet — Solidity contract that drips a fixed amount of ETH
-per request to any Ethereum address, plus a Vite + viem mini-dapp to use it.
+A simple Sepolia ETH faucet — Solidity 0.8.34 contract + React/ethers frontend
+styled after [sol-token-shop](https://github.com/solangegueiros/sol-token-shop).
 
 ## Flow
 
-1. Owner deploys `TokenFaucet.sol` to Sepolia and funds it with test ETH.
-2. A user opens the frontend, connects their wallet, types a recipient address.
-3. Clicking **Request** sends a transaction calling `drip(recipient)`. The recipient
-   receives 0.1 ETH; the caller pays the (tiny) gas fee.
-4. Each recipient address is rate-limited by a 24-hour cooldown enforced on-chain.
+1. Owner deploys `TokenFaucet.sol` to Ethereum Sepolia and funds it by sending some
+   test ETH to the contract address.
+2. A user opens the frontend, connects their wallet, optionally edits the recipient
+   address, and clicks **Request 0.1 ETH**.
+3. The contract sends 0.1 ETH (configurable) to the recipient. Each recipient address
+   is rate-limited by a 24-hour cooldown enforced on-chain.
 
 ## Project structure
 
 ```
 contracts/
-  TokenFaucet.sol            ← Solidity contract
+  TokenFaucet.sol           ← Solidity 0.8.34
 frontend/
   index.html
-  package.json
+  package.json              ← React 19 + ethers v6 + Vite
   tsconfig.json
-  vite.config.ts
+  vite.config.ts            ← envPrefix "TOKEN_"
+  .env.example
   src/
-    main.ts                  ← UI + viem logic
-    contract.ts              ← Faucet address + ABI (edit after deploy)
-    style.css
+    main.tsx
+    App.tsx
+    App.css
+    index.css
+    config.ts
+    contracts/
+      abis.ts               ← FAUCET_ABI + addresses from .env
+    hooks/
+      useWallet.ts          ← wallet connect + Sepolia switching
+      useFaucet.ts          ← reads + writes against TokenFaucet
+    components/
+      ConnectWallet.tsx
+      CopyAddress.tsx
+      FaucetInfo.tsx        ← balance / drip amount / cooldown / your cooldown
+      RequestDrip.tsx       ← recipient input + request button
+      AdminPanel.tsx        ← owner-only: setDripAmount / setCooldown / drain
 ```
 
 ## Prerequisites
 
 - Node.js 18+
-- A browser wallet (MetaMask or similar) on Ethereum Sepolia
+- A browser wallet (MetaMask or similar)
 - Some Sepolia ETH for the owner to fund the faucet
 
 ## 1. Deploy the contract
@@ -38,20 +53,28 @@ frontend/
 In Remix or Foundry, deploy `contracts/TokenFaucet.sol` to Sepolia with these
 constructor arguments:
 
-| Argument            | Value             | Meaning                  |
-|---------------------|-------------------|--------------------------|
-| `_dripAmount`       | `100000000000000000` | 0.1 ETH (in wei)      |
-| `_cooldownSeconds`  | `86400`           | 24 hours                 |
+| Argument            | Value                 | Meaning   |
+|---------------------|-----------------------|-----------|
+| `_dripAmount`       | `100000000000000000`  | 0.1 ETH   |
+| `_cooldownSeconds`  | `86400`               | 24 hours  |
 
 After deployment, send some Sepolia ETH directly to the contract address to fund it
-(the `receive()` function emits a `Funded` event).
+(`receive()` will emit a `Funded` event).
 
-## 2. Wire up the frontend
+## 2. Configure the frontend
 
-Open `frontend/src/contract.ts` and replace `FAUCET_ADDRESS` with your deployed
-contract address.
+```bash
+cd frontend
+cp .env.example .env
+```
 
-## 3. Run the frontend
+Edit `.env`:
+
+```
+TOKEN_FAUCET_ADDRESS=0xYourDeployedFaucetAddress
+```
+
+## 3. Run
 
 ```bash
 cd frontend
@@ -59,20 +82,24 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>, connect your wallet (will prompt to switch to Sepolia),
-optionally edit the recipient address, and click **Request 0.1 ETH**.
+Open <http://localhost:5173/> — the wallet button will prompt you to switch to
+Sepolia automatically.
 
-## Owner controls (call on Sepolia from the deployer wallet)
+## 4. Production build
 
-- `setDripAmount(uint256 newAmount)` — change drip size (wei).
-- `setCooldown(uint256 seconds)` — change rate-limit window.
-- `drain(address payable to)` — pull all remaining ETH back out.
+```bash
+npm run build
+```
+
+## Owner controls (visible in the UI when connected as the deployer)
+
+- **Set drip amount** — change the per-request amount (ETH).
+- **Set cooldown** — change the per-recipient rate-limit (seconds).
+- **Drain faucet** — pull all remaining ETH to any address.
 
 ## Notes
 
-- `drip(to)` is permissionless. Anyone can pay gas to trigger a drip to any address.
-  This is the standard public-faucet UX.
-- The 24-hour cooldown is per recipient, not per caller — so the same person can't
-  refill a single address repeatedly, but they can drip to a fresh address each call.
+- `drip(to)` is permissionless — anyone can pay gas to trigger a drip to any address.
+  The 24-hour cooldown is per recipient, not per caller.
 - Contract uses Solidity custom errors (`CooldownActive`, `InsufficientBalance`,
-  `TransferFailed`, `InvalidAddress`) — viem will surface these in the UI on failure.
+  `TransferFailed`, `InvalidAddress`); ethers surfaces them on failure.
