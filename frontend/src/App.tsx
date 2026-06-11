@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useWallet } from "./hooks/useWallet";
 import { useFaucet } from "./hooks/useFaucet";
+import { useRelayer } from "./hooks/useRelayer";
 import { ConnectWallet } from "./components/ConnectWallet";
 import { FaucetInfo } from "./components/FaucetInfo";
 import { RequestDrip } from "./components/RequestDrip";
 import { AdminPanel } from "./components/AdminPanel";
 import { CopyAddress } from "./components/CopyAddress";
+import { RelayerInfo } from "./components/RelayerInfo";
 import "./App.css";
 
 function App() {
@@ -27,6 +29,10 @@ function App() {
     configured,
     relayerConfigured,
   } = useFaucet(signer, account);
+  const {
+    address: relayerAddress,
+    balance: relayerBalance,
+  } = useRelayer();
 
   const [editing, setEditing] = useState(false);
   const [editAddress, setEditAddress] = useState("");
@@ -140,6 +146,10 @@ function App() {
                 dripAmount={dripAmount}
                 onRequest={dripViaRelayer}
               />
+            )}
+
+            {relayerConfigured && relayerAddress && (
+              <RelayerInfo address={relayerAddress} balance={relayerBalance} />
             )}
 
             {isOwner && (

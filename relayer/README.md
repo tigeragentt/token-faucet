@@ -55,6 +55,7 @@ Then in the Vercel dashboard set the production environment variables:
 | Variable                | Value                                                   |
 |-------------------------|---------------------------------------------------------|
 | `RELAYER_PRIVATE_KEY`   | Sepolia private key of a funded operator wallet         |
+| `RELAYER_ADDRESS` *(opt)* | Address of the operator wallet (derived from key if blank) |
 | `FAUCET_ADDRESS`        | Deployed `TokenFaucet.sol` address                      |
 | `SEPOLIA_RPC` *(opt)*   | Custom RPC URL (defaults to publicnode)                 |
 
