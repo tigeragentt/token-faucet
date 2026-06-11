@@ -1,27 +1,30 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { isAddress } from "ethers";
 
 interface Props {
   loading: boolean;
   txStatus: string | null;
-  account: string;
+  account: string | null;
   dripAmount: string;
-  onDrip: (recipient: string) => Promise<void>;
+  onRequest: (recipient: string) => Promise<void>;
 }
 
-export function RequestDrip({ loading, txStatus, account, dripAmount, onDrip }: Props) {
-  const [recipient, setRecipient] = useState(account);
+export function RequestDrip({
+  loading,
+  txStatus,
+  account,
+  dripAmount,
+  onRequest,
+}: Props) {
+  const [recipient, setRecipient] = useState(account ?? "");
 
-  useEffect(() => {
-    setRecipient((prev) => (prev === "" ? account : prev));
-  }, [account]);
-
-  const valid = recipient.trim().length > 0 && isAddress(recipient.trim());
+  const trimmed = recipient.trim();
+  const valid = trimmed.length > 0 && isAddress(trimmed);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!valid) return;
-    await onDrip(recipient.trim());
+    await onRequest(trimmed);
   };
 
   return (
@@ -31,7 +34,7 @@ export function RequestDrip({ loading, txStatus, account, dripAmount, onDrip }: 
         <div className="input-group">
           <input
             type="text"
-            placeholder="0x... recipient address"
+            placeholder="0x... Ethereum address"
             value={recipient}
             onChange={(e) => setRecipient(e.target.value)}
             disabled={loading}
@@ -39,7 +42,7 @@ export function RequestDrip({ loading, txStatus, account, dripAmount, onDrip }: 
             autoComplete="off"
           />
         </div>
-        {recipient.trim() !== "" && !valid && (
+        {trimmed !== "" && !valid && (
           <p className="estimate">Not a valid Ethereum address</p>
         )}
         <button
@@ -53,15 +56,17 @@ export function RequestDrip({ loading, txStatus, account, dripAmount, onDrip }: 
       {txStatus && (
         <p
           className={`tx-status ${
-            txStatus.startsWith("Error") ? "error" : "success"
+            txStatus.startsWith("Error") || txStatus.includes("cooldown")
+              ? "error"
+              : "success"
           }`}
         >
           {txStatus}
         </p>
       )}
       <p className="hint">
-        Leave the address as-is to send to your connected wallet, or paste any
-        address to drip there. Caller pays gas; recipient gets the ETH.
+        No wallet needed — a relayer pays the gas. You will receive {dripAmount}{" "}
+        ETH directly to the address above.
       </p>
     </div>
   );

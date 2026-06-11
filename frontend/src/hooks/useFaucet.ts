@@ -6,7 +6,7 @@ import {
   formatEther,
   parseEther,
 } from "ethers";
-import { FAUCET_ABI, ADDRESSES } from "../contracts/abis";
+import { FAUCET_ABI, ADDRESSES, RELAYER_URL } from "../contracts/abis";
 import { SEPOLIA_RPC } from "../config";
 
 export function useFaucet(signer: JsonRpcSigner | null, account: string | null) {
@@ -87,26 +87,51 @@ export function useFaucet(signer: JsonRpcSigner | null, account: string | null) 
     return () => clearInterval(interval);
   }, [refresh]);
 
-  const drip = useCallback(
+  const dripViaRelayer = useCallback(
     async (recipient: string) => {
-      const contract = getWriteContract();
-      if (!contract) return;
-
+      if (!RELAYER_URL) {
+        setTxStatus("Error: relayer not configured (set TOKEN_RELAYER_URL in .env)");
+        return;
+      }
       setLoading(true);
-      setTxStatus("Sending transaction...");
+      setTxStatus("Submitting via relayer…");
       try {
-        const tx = await contract.drip(recipient);
-        setTxStatus("Waiting for confirmation...");
-        await tx.wait();
-        setTxStatus(`Drip successful — sent ${dripAmount} ETH to ${recipient.slice(0, 6)}…${recipient.slice(-4)}`);
-        await refresh();
+        const res = await fetch(`${RELAYER_URL.replace(/\/+$/, "")}/api/drip`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ to: recipient }),
+        });
+        const data = (await res.json()) as {
+          ok?: boolean;
+          txHash?: string;
+          error?: string;
+          secondsRemaining?: number;
+        };
+        if (!res.ok) {
+          if (res.status === 429 && typeof data.secondsRemaining === "number") {
+            const mins = Math.max(1, Math.round(data.secondsRemaining / 60));
+            setTxStatus(
+              `Recipient is on cooldown — try again in ~${mins} minute${mins === 1 ? "" : "s"}.`
+            );
+          } else {
+            setTxStatus(`Error: ${data.error ?? "request failed"}`);
+          }
+          return;
+        }
+        setTxStatus(
+          `Drip submitted — tx ${data.txHash} (refresh will pick up the balance in a few seconds).`
+        );
+        // Refresh once the block usually lands.
+        setTimeout(() => {
+          void refresh();
+        }, 15000);
       } catch (err: unknown) {
-        setTxStatus(`Error: ${(err as Error).message}`);
+        setTxStatus(`Error: ${(err as Error).message ?? String(err)}`);
       } finally {
         setLoading(false);
       }
     },
-    [getWriteContract, refresh, dripAmount]
+    [refresh]
   );
 
   const setDripAmountTx = useCallback(
@@ -184,12 +209,13 @@ export function useFaucet(signer: JsonRpcSigner | null, account: string | null) 
     isOwner,
     loading,
     txStatus,
-    drip,
+    dripViaRelayer,
     setDripAmountTx,
     setCooldownTx,
     drain,
     updateFaucetAddress,
     refresh,
     configured: Boolean(faucetAddress),
+    relayerConfigured: Boolean(RELAYER_URL),
   };
 }

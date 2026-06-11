@@ -19,12 +19,13 @@ function App() {
     isOwner,
     loading,
     txStatus,
-    drip,
+    dripViaRelayer,
     setDripAmountTx,
     setCooldownTx,
     drain,
     updateFaucetAddress,
     configured,
+    relayerConfigured,
   } = useFaucet(signer, account);
 
   const [editing, setEditing] = useState(false);
@@ -66,14 +67,15 @@ function App() {
         </div>
       </header>
       <div className="app">
-        {!configured && account && (
+        {!configured && (
           <div className="card warning">
             <h2>Configuration Required</h2>
             <p>
               Set your contract address in <code>.env</code>:
             </p>
             <pre>
-              TOKEN_FAUCET_ADDRESS=0x...
+              TOKEN_FAUCET_ADDRESS=0x...{"\n"}
+              TOKEN_RELAYER_URL=https://your-relayer.vercel.app
             </pre>
           </div>
         )}
@@ -101,9 +103,11 @@ function App() {
                 ) : (
                   <>
                     <CopyAddress address={faucetAddress} />
-                    <button className="btn-copy" onClick={handleEdit}>
-                      Edit
-                    </button>
+                    {isOwner && (
+                      <button className="btn-copy" onClick={handleEdit}>
+                        Edit
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -118,41 +122,50 @@ function App() {
               hasAccount={Boolean(account)}
             />
 
-            {account ? (
-              <>
-                <RequestDrip
-                  loading={loading}
-                  txStatus={txStatus}
-                  account={account}
-                  dripAmount={dripAmount}
-                  onDrip={drip}
-                />
-                {isOwner && (
-                  <AdminPanel
-                    loading={loading}
-                    faucetBalance={faucetBalance}
-                    dripAmount={dripAmount}
-                    cooldownSeconds={cooldownSeconds}
-                    onSetDripAmount={setDripAmountTx}
-                    onSetCooldown={setCooldownTx}
-                    onDrain={drain}
-                  />
-                )}
-              </>
-            ) : (
-              <div className="card">
+            {!relayerConfigured && (
+              <div className="card warning">
+                <h2>Relayer Not Configured</h2>
                 <p>
-                  Connect your wallet to request a drip. <br />
-                  You can send the ETH to your wallet or any address you choose.
+                  Set <code>TOKEN_RELAYER_URL</code> in <code>.env</code> so the
+                  frontend knows where to submit gasless drip requests.
                 </p>
               </div>
             )}
-            <ConnectWallet
-              account={account}
-              connecting={connecting}
-              error={error}
-              onConnect={connect}
-            />
+
+            {relayerConfigured && (
+              <RequestDrip
+                loading={loading}
+                txStatus={txStatus}
+                account={account}
+                dripAmount={dripAmount}
+                onRequest={dripViaRelayer}
+              />
+            )}
+
+            {isOwner && (
+              <AdminPanel
+                loading={loading}
+                faucetBalance={faucetBalance}
+                dripAmount={dripAmount}
+                cooldownSeconds={cooldownSeconds}
+                onSetDripAmount={setDripAmountTx}
+                onSetCooldown={setCooldownTx}
+                onDrain={drain}
+              />
+            )}
+
+            <div className="card">
+              <p className="hint" style={{ marginTop: 0 }}>
+                Connecting a wallet is <strong>optional</strong> — only the owner
+                needs to connect to manage the faucet.
+              </p>
+              <ConnectWallet
+                account={account}
+                connecting={connecting}
+                error={error}
+                onConnect={connect}
+              />
+            </div>
           </main>
         )}
       </div>
