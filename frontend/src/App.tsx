@@ -117,6 +117,12 @@ function App() {
                   </>
                 )}
               </div>
+              {relayerAddress && (
+                <div className="contract-row">
+                  <span className="label">Relayer:</span>
+                  <CopyAddress address={relayerAddress} />
+                </div>
+              )}
               {editError && <p className="error">{editError}</p>}
             </div>
 
@@ -149,7 +155,7 @@ function App() {
             )}
 
             {relayerConfigured && relayerAddress && (
-              <RelayerInfo address={relayerAddress} balance={relayerBalance} />
+              <RelayerInfo balance={relayerBalance} />
             )}
 
             {isOwner && (

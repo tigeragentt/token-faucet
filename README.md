@@ -49,7 +49,7 @@ frontend/
       FaucetInfo.tsx
       RequestDrip.tsx        ← typed address → relayer (no wallet required)
       AdminPanel.tsx         ← owner-only: setDripAmount / setCooldown / drain
-relayer/                     ← Vercel serverless
+faucet-relayer/              ← Vercel serverless
   api/
     drip.ts                  ← POST /api/drip { to } → submits drip(to) tx
     health.ts
@@ -81,7 +81,7 @@ will emit a `Funded` event).
 ## 2. Deploy the relayer
 
 ```bash
-cd relayer
+cd faucet-relayer
 cp .env.example .env   # set RELAYER_PRIVATE_KEY + FAUCET_ADDRESS
 npm install
 npx vercel --prod
@@ -91,7 +91,7 @@ Set the same env vars in the Vercel dashboard for the production deployment. Fun
 the operator wallet (the address whose private key is `RELAYER_PRIVATE_KEY`) with
 some Sepolia ETH — every drip costs ~21 000 gas.
 
-See `relayer/README.md` for the full endpoint reference.
+See `faucet-relayer/README.md` for the full endpoint reference.
 
 ## 3. Configure + run the frontend
 
